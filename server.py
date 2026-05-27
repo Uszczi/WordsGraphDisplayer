@@ -47,6 +47,7 @@ class FilmsGraphBuilder:
         self.word_relations: Dict[str, Set[str]] = defaultdict(set)
         self.word_lines: Dict[str, List[str]] = defaultdict(list)  # track original lines
         self.word_types: Dict[str, str] = {}  # track node type (word or director)
+        self.original_case: Dict[str, str] = {}  # preserve original case for directors
         self.all_words: Set[str] = set()
 
     def load_films_files(self) -> None:
@@ -111,16 +112,21 @@ class FilmsGraphBuilder:
         if directors_text:
             directors_list = [d.strip() for d in directors_text.split(',')]
             for director in directors_list:
-                director_name = director.lower().strip()
-                if director_name and len(director_name) > 2:
-                    # Store director with node_type
-                    self.all_words.add(director_name)
-                    self.word_types[director_name] = "director"
-                    meaningful_directors.append(director_name)
+                director_name = director.strip()  # Keep original case
+                director_name_lower = director_name.lower()  # For comparison
+                if director_name_lower and len(director_name_lower) > 2:
+                    # Store director with original case but use lowercase as key
+                    if director_name_lower not in self.all_words:
+                        self.all_words.add(director_name_lower)
+                        # Store the original case version
+                        self.original_case[director_name_lower] = director_name
+                    
+                    self.word_types[director_name_lower] = "director"
+                    meaningful_directors.append(director_name_lower)
                     
                     # Track original line for director
-                    if original_line not in self.word_lines[director_name]:
-                        self.word_lines[director_name].append(original_line)
+                    if original_line not in self.word_lines[director_name_lower]:
+                        self.word_lines[director_name_lower].append(original_line)
         
         # Add title words to our set
         self.all_words.update(meaningful_title_words)
@@ -158,9 +164,12 @@ class FilmsGraphBuilder:
                 for related_word in sorted(self.word_relations[word])
             ]
 
+            # Use original case for directors, lowercase for regular words
+            display_value = self.original_case.get(word, word)
+            
             node = Node(
                 id=word,
-                value=word,
+                value=display_value,
                 node_type=self.word_types.get(word, "word"),
                 relations=relations,
                 original_lines=self.word_lines[word]

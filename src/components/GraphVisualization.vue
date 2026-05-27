@@ -2,6 +2,16 @@
   <div class="graph-wrapper">
     <div ref="graphContainer" class="graph-container"></div>
     <div class="graph-controls">
+      <div class="legend">
+        <div class="legend-item">
+          <span class="legend-color" style="background: #667eea;"></span>
+          <span>Words</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background: #FF9F43;"></span>
+          <span>Directors</span>
+        </div>
+      </div>
       <div class="zoom-control">
         <label>Zoom</label>
         <input
@@ -58,12 +68,21 @@ export default {
       // Create nodes
       props.nodes.forEach(node => {
         nodeMap.set(node.id, node)
+        // Color nodes based on type: directors get a different color
+        let nodeColor = '#667eea' // default word color (purple)
+        if (node.node_type === 'director') {
+          nodeColor = '#FF9F43' // director color (orange)
+        }
+        if (props.selectedNodeId === node.id) {
+          nodeColor = '#FF6B6B' // selected color (red)
+        }
+        
         visNodes.push({
           id: node.id,
           label: node.value,
-          title: `${node.value}\nRelations: ${node.relations.length}`,
+          title: `${node.value}\nType: ${node.node_type}\nRelations: ${node.relations.length}`,
           size: Math.min(50, Math.max(25, 25 + Math.log(node.relations.length + 1) * 5)),
-          color: props.selectedNodeId === node.id ? '#FF6B6B' : '#667eea',
+          color: nodeColor,
           font: {
             size: 12,
             color: 'white'
@@ -265,6 +284,30 @@ export default {
   align-items: center;
   z-index: 10;
   flex-wrap: wrap;
+}
+
+.legend {
+  display: flex;
+  gap: 15px;
+  background: rgba(102, 126, 234, 0.9);
+  padding: 10px 15px;
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
 .zoom-control {

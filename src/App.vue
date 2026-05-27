@@ -11,6 +11,16 @@
             @input="filterNodes"
           />
         </div>
+        <div class="filter-toggle">
+          <label>
+            <input
+              v-model="showOnlyDirectors"
+              type="checkbox"
+              @change="filterNodes"
+            />
+            Directors Only
+          </label>
+        </div>
         <button @click="loadNodes" :disabled="loading">
           {{ loading ? 'Loading...' : 'Refresh' }}
         </button>
@@ -62,7 +72,7 @@
         </div>
         <div v-else class="graph-container">
           <GraphVisualization
-            :nodes="nodes"
+            :nodes="filteredNodes"
             :selected-node-id="selectedNodeId"
             @node-selected="selectNode"
           />
@@ -132,15 +142,24 @@ export default {
     const searchQuery = ref('')
     const selectedNodeId = ref(null)
     const hoveredLineIndex = ref(null)
+    const showOnlyDirectors = ref(false)
 
     const filteredNodes = computed(() => {
       let filtered = nodes.value
+      
+      // Filter by type if directors only is enabled
+      if (showOnlyDirectors.value) {
+        filtered = filtered.filter(node => node.node_type === 'director')
+      }
+      
+      // Filter by search query
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase()
         filtered = filtered.filter(node =>
           node.value.toLowerCase().includes(query)
         )
       }
+      
       // Sort by number of relations (descending)
       return filtered.sort((a, b) => b.relations.length - a.relations.length)
     })
@@ -182,6 +201,7 @@ export default {
       selectedNode,
       selectedNodeId,
       hoveredLineIndex,
+      showOnlyDirectors,
       loading,
       error,
       stats,
@@ -233,6 +253,34 @@ export default {
 
 .search-box input::placeholder {
   color: rgba(255, 255, 255, 0.7);
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.filter-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  margin: 0;
+}
+
+.filter-toggle input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
 }
 
 .content {
