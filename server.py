@@ -25,6 +25,7 @@ class Node(BaseModel):
     id: str  # the word itself
     value: str  # display value (same as id, could be enhanced)
     relations: List[Relation]
+    original_lines: List[str] = []  # original lines where this word appeared
 
 
 class APIResponse(BaseModel):
@@ -43,6 +44,7 @@ class FilmsGraphBuilder:
     def __init__(self, storage_path: str):
         self.storage_path = Path(storage_path).expanduser()
         self.word_relations: Dict[str, Set[str]] = defaultdict(set)
+        self.word_lines: Dict[str, List[str]] = defaultdict(list)  # track original lines
         self.all_words: Set[str] = set()
 
     def load_films_files(self) -> None:
@@ -97,6 +99,12 @@ class FilmsGraphBuilder:
         # Add all words to our set
         self.all_words.update(meaningful_words)
 
+        # Track original line for each word (store only if not already stored)
+        original_line = line.strip()
+        for word in meaningful_words:
+            if original_line not in self.word_lines[word]:
+                self.word_lines[word].append(original_line)
+
         # Create relations between consecutive words
         for i in range(len(meaningful_words) - 1):
             word1 = meaningful_words[i]
@@ -120,7 +128,8 @@ class FilmsGraphBuilder:
             node = Node(
                 id=word,
                 value=word,
-                relations=relations
+                relations=relations,
+                original_lines=self.word_lines[word]
             )
             nodes.append(node)
 

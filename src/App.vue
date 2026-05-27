@@ -31,7 +31,7 @@
           </div>
           <div class="stat-item">
             <span>Avg Relations:</span>
-            <strong>{{ stats.avg_relations?.toFixed(2) }}</strong>
+            <strong>{{ stats.avg_relations_per_node?.toFixed(2) }}</strong>
           </div>
         </div>
 
@@ -71,7 +71,29 @@
             <p class="relations-count">
               Relations: {{ selectedNode.relations.length }}
             </p>
+
+            <div v-if="selectedNode.original_lines && selectedNode.original_lines.length > 0" class="original-lines-section">
+              <h4>Source Lines ({{ selectedNode.original_lines.length }})</h4>
+              <div class="original-lines-list">
+                <div
+                  v-for="(line, index) in selectedNode.original_lines"
+                  :key="index"
+                  class="original-line-wrapper"
+                  @mouseenter="hoveredLineIndex = index"
+                  @mouseleave="hoveredLineIndex = null"
+                >
+                  <div class="original-line">
+                    {{ line }}
+                  </div>
+                  <div v-if="hoveredLineIndex === index" class="line-tooltip">
+                    {{ line }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="relations-list">
+              <h4>Connected Words</h4>
               <div
                 v-for="relation in selectedNode.relations"
                 :key="relation.connect_to"
@@ -105,10 +127,11 @@ export default {
     const stats = ref({
       total_nodes: 0,
       total_relations: 0,
-      avg_relations: 0
+      avg_relations_per_node: 0
     })
     const searchQuery = ref('')
     const selectedNodeId = ref(null)
+    const hoveredLineIndex = ref(null)
 
     const filteredNodes = computed(() => {
       let filtered = nodes.value
@@ -158,6 +181,7 @@ export default {
       filteredNodes,
       selectedNode,
       selectedNodeId,
+      hoveredLineIndex,
       loading,
       error,
       stats,
@@ -345,10 +369,101 @@ export default {
   font-size: 13px;
 }
 
+.original-lines-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.original-lines-section h4 {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.original-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.original-line-wrapper {
+  position: relative;
+}
+
+.original-line {
+  padding: 8px;
+  background: #f0f4ff;
+  border-left: 3px solid #667eea;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+  transition: background-color 0.2s;
+}
+
+.original-line:hover {
+  background: #e6ebff;
+}
+
+.line-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: #333;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  word-wrap: break-word;
+  white-space: normal;
+  z-index: 1000;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: tooltipFadeIn 0.15s ease-in;
+}
+
+.line-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #333;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .relations-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.relations-list h4 {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .relation-item {

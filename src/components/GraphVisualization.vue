@@ -19,6 +19,9 @@
       <button @click="togglePhysics">
         {{ physicsEnabled ? 'Stabilize' : 'Physics Off' }}
       </button>
+      <button @click="toggleMovement" :class="{ active: movementEnabled }">
+        {{ movementEnabled ? 'Freeze All' : 'Unfreeze' }}
+      </button>
     </div>
   </div>
 </template>
@@ -45,6 +48,7 @@ export default {
     let network = null
     const physicsEnabled = ref(true)
     const zoomLevel = ref(1)
+    const movementEnabled = ref(true)
 
     const buildGraphData = () => {
       const visNodes = []
@@ -129,6 +133,9 @@ export default {
           tooltipDelay: 200,
           navigationButtons: true,
           keyboard: true
+        },
+        layout: {
+          improvedLayout: false
         }
       }
 
@@ -178,10 +185,25 @@ export default {
       }
     }
 
+    const toggleMovement = () => {
+      if (network) {
+        movementEnabled.value = !movementEnabled.value
+        // Update all nodes with fixed property
+        const nodesToUpdate = network.body.nodes
+        for (const nodeId in nodesToUpdate) {
+          if (nodesToUpdate[nodeId]) {
+            nodesToUpdate[nodeId].setOptions({
+              fixed: !movementEnabled.value
+            })
+          }
+        }
+      }
+    }
+
     watch(
       () => props.selectedNodeId,
       (newId) => {
-        if (network) {
+        if (network && network.data) {
           const { nodes: visNodes } = buildGraphData()
           network.data.nodes.update(visNodes)
         }
@@ -191,7 +213,7 @@ export default {
     watch(
       () => props.nodes.length,
       () => {
-        if (network) {
+        if (network && network.data) {
           const { nodes: visNodes, edges: visEdges } = buildGraphData()
           network.data.nodes.clear()
           network.data.edges.clear()
@@ -210,8 +232,10 @@ export default {
       graphContainer,
       resetZoom,
       togglePhysics,
+      toggleMovement,
       handleZoomChange,
       physicsEnabled,
+      movementEnabled,
       zoomLevel
     }
   }
@@ -318,5 +342,13 @@ export default {
 
 .graph-controls button:active {
   background: rgba(118, 75, 162, 0.9);
+}
+
+.graph-controls button.active {
+  background: rgba(255, 107, 107, 0.9);
+}
+
+.graph-controls button.active:hover {
+  background: rgba(255, 107, 107, 1);
 }
 </style>
