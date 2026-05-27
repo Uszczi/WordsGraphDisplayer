@@ -24,6 +24,7 @@ class Node(BaseModel):
     """Represents a word node with its relations"""
     id: str  # the word itself
     value: str  # display value (same as id, could be enhanced)
+    node_type: str = "word"  # "word" or "director"
     relations: List[Relation]
     original_lines: List[str] = []  # original lines where this word appeared
 
@@ -45,6 +46,7 @@ class FilmsGraphBuilder:
         self.storage_path = Path(storage_path).expanduser()
         self.word_relations: Dict[str, Set[str]] = defaultdict(set)
         self.word_lines: Dict[str, List[str]] = defaultdict(list)  # track original lines
+        self.word_types: Dict[str, str] = {}  # track node type (word or director)
         self.all_words: Set[str] = set()
 
     def load_films_files(self) -> None:
@@ -76,15 +78,22 @@ class FilmsGraphBuilder:
     def _extract_words_from_line(self, line: str) -> None:
         """
         Extract words from a line and create relations.
-        For 'spider man', creates a relation: spider -> man, man -> spider
+        Handles directors separately (inside **) without splitting by comma.
         """
-        # Remove bold markers (**text**)
-        cleaned = re.sub(r'\*\*', '', line)
-        cleaned = cleaned.lower()
-
-        # Extract words (alphanumeric sequences, case-insensitive)
-        words = re.findall(r'[a-zA-Z]+', cleaned.lower())
-
+        original_line = line.strip()
+        
+        # Extract title and directors separately
+        # Pattern: Title (Year) **Director1, Director2, ...**
+        bold_pattern = r'\*\*(.+?)\*\*'
+        bold_match = re.search(bold_pattern, line)
+        
+        directors_text = ""
+        title_text = line
+        
+        if bold_match:
+            directors_text = bold_match.group(1)
+            title_text = re.sub(bold_pattern, '', line)
+        
         # Remove common words that might not be meaningful
         stop_words = {
             'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
@@ -92,28 +101,52 @@ class FilmsGraphBuilder:
             'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
             'would', 'could', 'should', 'may', 'might', 'must', 'can', 'vs'
         }
-
-        # Filter out stop words and get unique words
-        meaningful_words = [w for w in words if w not in stop_words and len(w) > 2]
-
-        # Add all words to our set
-        self.all_words.update(meaningful_words)
-
-        # Track original line for each word (store only if not already stored)
-        original_line = line.strip()
-        for word in meaningful_words:
+        
+        # Extract title words
+        title_words = re.findall(r'[a-zA-Z]+', title_text.lower())
+        meaningful_title_words = [w for w in title_words if w not in stop_words and len(w) > 2]
+        
+        # Extract and process directors (split by comma, but don't split names within)
+        meaningful_directors = []
+        if directors_text:
+            directors_list = [d.strip() for d in directors_text.split(',')]
+            for director in directors_list:
+                director_name = director.lower().strip()
+                if director_name and len(director_name) > 2:
+                    # Store director with node_type
+                    self.all_words.add(director_name)
+                    self.word_types[director_name] = "director"
+                    meaningful_directors.append(director_name)
+                    
+                    # Track original line for director
+                    if original_line not in self.word_lines[director_name]:
+                        self.word_lines[director_name].append(original_line)
+        
+        # Add title words to our set
+        self.all_words.update(meaningful_title_words)
+        for word in meaningful_title_words:
+            self.word_types[word] = "word"
+        
+        # Track original line for title words
+        for word in meaningful_title_words:
             if original_line not in self.word_lines[word]:
                 self.word_lines[word].append(original_line)
-
-        # Create relations between consecutive words
-        for i in range(len(meaningful_words) - 1):
-            word1 = meaningful_words[i]
-            word2 = meaningful_words[i + 1]
-
-            # Bidirectional relation
-            if word1 != word2:  # Don't self-reference
+        
+        # Create relations between consecutive title words
+        for i in range(len(meaningful_title_words) - 1):
+            word1 = meaningful_title_words[i]
+            word2 = meaningful_title_words[i + 1]
+            
+            if word1 != word2:
                 self.word_relations[word1].add(word2)
                 self.word_relations[word2].add(word1)
+        
+        # Create relations between title words and directors
+        for title_word in meaningful_title_words:
+            for director in meaningful_directors:
+                if title_word != director:
+                    self.word_relations[title_word].add(director)
+                    self.word_relations[director].add(title_word)
 
     def build_nodes(self) -> List[Node]:
         """Build Node objects from extracted word relations"""
@@ -128,6 +161,7 @@ class FilmsGraphBuilder:
             node = Node(
                 id=word,
                 value=word,
+                node_type=self.word_types.get(word, "word"),
                 relations=relations,
                 original_lines=self.word_lines[word]
             )
