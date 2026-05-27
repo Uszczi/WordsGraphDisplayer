@@ -111,11 +111,15 @@ export default {
     const selectedNodeId = ref(null)
 
     const filteredNodes = computed(() => {
-      if (!searchQuery.value) return nodes.value
-      const query = searchQuery.value.toLowerCase()
-      return nodes.value.filter(node =>
-        node.value.toLowerCase().includes(query)
-      )
+      let filtered = nodes.value
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(node =>
+          node.value.toLowerCase().includes(query)
+        )
+      }
+      // Sort by number of relations (descending)
+      return filtered.sort((a, b) => b.relations.length - a.relations.length)
     })
 
     const selectedNode = computed(() => {

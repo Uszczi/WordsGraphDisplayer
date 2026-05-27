@@ -2,6 +2,19 @@
   <div class="graph-wrapper">
     <div ref="graphContainer" class="graph-container"></div>
     <div class="graph-controls">
+      <div class="zoom-control">
+        <label>Zoom</label>
+        <input
+          v-model.number="zoomLevel"
+          type="range"
+          min="0.1"
+          max="3"
+          step="0.1"
+          @input="handleZoomChange"
+          class="zoom-slider"
+        />
+        <span class="zoom-value">{{ zoomLevel.toFixed(1) }}x</span>
+      </div>
       <button @click="resetZoom">Reset Zoom</button>
       <button @click="togglePhysics">
         {{ physicsEnabled ? 'Stabilize' : 'Physics Off' }}
@@ -31,6 +44,7 @@ export default {
     const graphContainer = ref(null)
     let network = null
     const physicsEnabled = ref(true)
+    const zoomLevel = ref(1)
 
     const buildGraphData = () => {
       const visNodes = []
@@ -139,8 +153,17 @@ export default {
       }
     }
 
+    const handleZoomChange = () => {
+      if (network) {
+        network.moveTo({
+          scale: zoomLevel.value
+        })
+      }
+    }
+
     const resetZoom = () => {
       if (network) {
+        zoomLevel.value = 1
         network.fit()
       }
     }
@@ -187,7 +210,9 @@ export default {
       graphContainer,
       resetZoom,
       togglePhysics,
-      physicsEnabled
+      handleZoomChange,
+      physicsEnabled,
+      zoomLevel
     }
   }
 }
@@ -213,7 +238,65 @@ export default {
   left: 20px;
   display: flex;
   gap: 10px;
+  align-items: center;
   z-index: 10;
+  flex-wrap: wrap;
+}
+
+.zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(102, 126, 234, 0.9);
+  padding: 10px 15px;
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+}
+
+.zoom-control label {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.zoom-slider {
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-value {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 35px;
+  text-align: right;
 }
 
 .graph-controls button {
@@ -226,6 +309,7 @@ export default {
   font-size: 13px;
   transition: background 0.2s;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
 }
 
 .graph-controls button:hover {
