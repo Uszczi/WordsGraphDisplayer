@@ -5,6 +5,7 @@ from typing import Dict, List, Set
 from collections import defaultdict
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
@@ -135,6 +136,15 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Words Graph Displayer",
         description="API to display word graphs from Films metadata"
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins (change to specific domains in production)
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Load data at startup
